@@ -1,8 +1,8 @@
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Transaction, FixedBill } from '../types';
-import { TrendingUp, TrendingDown, AlertCircle, Calendar, DollarSign, BellRing, Rocket, Activity, Zap, Plus } from 'lucide-react';
-import { ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis } from 'recharts';
+import { TrendingUp, TrendingDown, AlertCircle, Calendar, DollarSign, BellRing, Rocket, Activity, Zap, Plus, BarChart2 } from 'lucide-react';
+import { ResponsiveContainer, RadialBarChart, RadialBar, PolarAngleAxis, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 
 interface Props {
   store: any;
@@ -33,7 +33,37 @@ const Dashboard: React.FC<Props> = ({ store, onAdd }) => {
   const remainingDays = daysInMonth - today.getDate() + 1;
   const dailyBudget = remainingDays > 0 ? Math.max(0, balance / remainingDays) : 0;
 
-  const chartData = [
+  // Weekly Statistics Calculation
+  const getWeeklyData = () => {
+    const data = [];
+    const dayNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split('T')[0];
+      const dayName = dayNames[d.getDay()];
+
+      const dayIncome = transactions
+        .filter((t: Transaction) => t.type === 'income' && t.date.startsWith(dateStr))
+        .reduce((acc: number, t: Transaction) => acc + t.amount, 0);
+      
+      const dayExpense = transactions
+        .filter((t: Transaction) => t.type === 'expense' && t.date.startsWith(dateStr))
+        .reduce((acc: number, t: Transaction) => acc + t.amount, 0);
+
+      data.push({
+        name: dayName,
+        receita: dayIncome,
+        despesa: dayExpense,
+      });
+    }
+    return data;
+  };
+
+  const weeklyData = getWeeklyData();
+
+  const gaugeData = [
     { name: 'Comprometimento', value: Math.min(100, commitmentRatio) }
   ];
 
@@ -55,7 +85,6 @@ const Dashboard: React.FC<Props> = ({ store, onAdd }) => {
         <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2.5rem] blur opacity-20 dark:opacity-40 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
         <div className="relative p-6 rounded-[2.3rem] glass dark:bg-zinc-900/80 border border-white/20 dark:border-zinc-800 shadow-2xl flex items-center justify-between overflow-hidden">
           
-          {/* Decorative SVG elements for futuristic feel */}
           <div className="absolute -top-10 -right-10 opacity-5 pointer-events-none">
              <Zap size={200} />
           </div>
@@ -82,7 +111,7 @@ const Dashboard: React.FC<Props> = ({ store, onAdd }) => {
               <RadialBarChart 
                 innerRadius="75%" 
                 outerRadius="100%" 
-                data={chartData} 
+                data={gaugeData} 
                 startAngle={90} 
                 endAngle={450}
               >
@@ -104,8 +133,60 @@ const Dashboard: React.FC<Props> = ({ store, onAdd }) => {
                 </text>
               </RadialBarChart>
             </ResponsiveContainer>
-            <div className="absolute inset-0 border-4 border-dashed border-blue-500/10 dark:border-blue-400/10 rounded-full animate-[spin_10s_linear_infinite]"></div>
           </div>
+        </div>
+      </div>
+
+      {/* Weekly Summary Chart */}
+      <div className="p-6 rounded-[2.5rem] glass dark:bg-zinc-900/60 border border-gray-100 dark:border-zinc-800 shadow-sm space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <BarChart2 size={16} className="text-blue-600 dark:text-blue-400" />
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-gray-400 dark:text-zinc-500">Relatório de Operação (7D)</h3>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+              <span className="text-[8px] font-black uppercase text-gray-400">Receita</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+              <span className="text-[8px] font-black uppercase text-gray-400">Despesa</span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="h-40 w-full">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weeklyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={isDark ? '#27272a' : '#f4f4f5'} />
+              <XAxis 
+                dataKey="name" 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#a1a1aa', fontSize: 10, fontWeight: 700 }}
+                dy={10}
+              />
+              <YAxis 
+                axisLine={false} 
+                tickLine={false} 
+                tick={{ fill: '#a1a1aa', fontSize: 8, fontWeight: 700 }}
+              />
+              <Tooltip 
+                cursor={{ fill: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)' }}
+                contentStyle={{ 
+                  borderRadius: '16px', 
+                  border: 'none', 
+                  backgroundColor: isDark ? '#18181b' : '#ffffff',
+                  boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                  fontSize: '10px',
+                  fontWeight: 'bold'
+                }}
+              />
+              <Bar dataKey="receita" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="despesa" fill="#ef4444" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
         </div>
       </div>
 
