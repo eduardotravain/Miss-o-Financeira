@@ -69,12 +69,20 @@ const App: React.FC = () => {
   const store = useStore();
   const [currentView, setCurrentView] = useState<AppView>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    return localStorage.getItem('sentinela_auth') === 'true';
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem('sentinela_auth') === 'true';
+    } catch {
+      return false;
+    }
   });
 
   const handleLogin = () => {
     setIsLoggedIn(true);
-    localStorage.setItem('sentinela_auth', 'true');
+    try {
+      window.localStorage.setItem('sentinela_auth', 'true');
+    } catch {
+      // O login permanece ativo durante a sessão mesmo sem persistência local.
+    }
   };
 
   useEffect(() => {
